@@ -18,12 +18,12 @@ Release announcement: https://devblogs.microsoft.com/nuget/introducing-package-s
 
 Older tooling will ignore the Package Source Mapping configuration. To use this feature, ensure all your build environments use compatible tooling versions.
 
-Package Source Mappings will apply to all project types – including .NET Framework – as long as compatible tooling is used for build and restore.
+Package Source Mappings will apply to all project types as long as compatible tooling is used for build and restore.
 
 ## Summary
 
 <!-- One-paragraph description of the proposal. -->
-NuGet allows access to all package IDs on a package source. However, many .NET developers have needs to filter & consume a subset of the package IDs available on public, private, and local sources. Although NuGet supports a concept of [trusted-signers](https://docs.microsoft.com/en-us/nuget/reference/cli-reference/cli-ref-trusted-signers) to trust packages signed by specific authors, users would like to optionally specify which package IDs shoulder be allowed from which sources.
+NuGet allows access to all package IDs on a package source. However, many .NET developers have needs to filter & consume a subset of the package IDs available on public, private, and local sources. Although NuGet supports a concept of [trusted-signers](https://docs.microsoft.com/en-us/nuget/reference/cli-reference/cli-ref-trusted-signers) to trust packages signed by specific authors, users would like to optionally specify which package IDs should be allowed from which sources.
 
 This proposal introduces a concept known as Package Source Mapping that allows developers to map package ID patterns, including exact IDs and package ID prefixes, to specific sources. These mappings will enable users to centrally manage what packages are allowed in their solution and where those packages should come from.
 
@@ -46,13 +46,10 @@ When using a combination of public, private, and local sources defined in `NuGet
 
 **Prerequisites**
 
-1. Create a repo-level `nuget.config` file by executing `dotnet new nugetconfig` at the repo root.
-2. Define a [repo-specific global packages folder](https://docs.microsoft.com/nuget/reference/nuget-config-file#config-section) in your `nuget.config`.
-3. Define your package sources preceded with a `<clear />` to ensure no sources are inherited from a lower level config.
+Have or create a repo-level `nuget.config` file by executing `dotnet new nugetconfig` at the repo root. In your `nuget.config`, define your package sources.
 
 ```xml
-<!-- Define a global packages folder for your repository. -->
-<!-- This is where installed packages will be stored locally. -->
+<!-- [Optional] Define a global packages folder for your repository. -->
 <config>
   <add key="globalPackagesFolder" value="globalPackagesFolder" />
 </config>
@@ -72,21 +69,6 @@ When using a combination of public, private, and local sources defined in `NuGet
 Add a new `<packageSourceMapping>` element within the `NuGet.config` using the following syntax:
 
 ```xml
-<!-- Define a global packages folder for your repository. -->
-<!-- This is where installed packages will be stored locally. -->
-<config>
-  <add key="globalPackagesFolder" value="globalPackagesFolder" />
-</config>
-
-<!-- Define my package sources, nuget.org and contoso.com. -->
-<!-- `clear` ensures no additional sources are inherited from another config file. -->
-<packageSources>
-  <clear />
-  <!-- `key` can be any identifier for your source. -->
-  <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-  <add key="contoso" value="https://contoso.com/packages/" />
-</packageSources>
-
 <!-- Define your source mapping element -->
 <packageSourceMapping>
  
@@ -96,21 +78,6 @@ Add a new `<packageSourceMapping>` element within the `NuGet.config` using the f
 Define the `<packageSource>` element within the `<packageSourceMapping>` parent with the name of a valid package source:
 
 ```xml
-<!-- Define a global packages folder for your repository. -->
-<!-- This is where installed packages will be stored locally. -->
-<config>
-  <add key="globalPackagesFolder" value="globalPackagesFolder" />
-</config>
-
-<!-- Define my package sources, nuget.org and contoso.com. -->
-<!-- `clear` ensures no additional sources are inherited from another config file. -->
-<packageSources>
-  <clear />
-  <!-- `key` can be any identifier for your source. -->
-  <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-  <add key="contoso" value="https://contoso.com/packages/" />
-</packageSources>
-
 <!-- Define your source mapping element -->
 <packageSourceMapping>
 
@@ -124,21 +91,6 @@ Define the `<packageSource>` element within the `<packageSourceMapping>` parent 
 Next, add `<package pattern="">` elements under the `<packageSource>` to map matching package IDs to that source. Patterns can be defined as an exact package ID or a package ID prefix using a wildcard(*) to match the glob pattern of 0 or more package ID(s):
 
 ```xml
-<!-- Define a global packages folder for your repository. -->
-<!-- This is where installed packages will be stored locally. -->
-<config>
-  <add key="globalPackagesFolder" value="globalPackagesFolder" />
-</config>
-
-<!-- Define my package sources, nuget.org and contoso.com. -->
-<!-- `clear` ensures no additional sources are inherited from another config file. -->
-<packageSources>
-  <clear />
-  <!-- `key` can be any identifier for your source. -->
-  <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-  <add key="contoso" value="https://contoso.com/packages/" />
-</packageSources>
-
 <!-- Define your source mapping element -->
 <packageSourceMapping>
     <!-- Add a pattern for Microsoft.* or NuGet.* under the nuget.org source. -->
@@ -151,15 +103,18 @@ Next, add `<package pattern="">` elements under the `<packageSource>` to map mat
 ```
 
 Repeat this process for all sources.
+
 When using package source mapping, every source should have a list of allowed package patterns.
 A user may also pin a specific package id instead of broader package ID prefix.
-The most specific pattern that matches a package ID will have the highest precedence. Exact package IDs will always have the highest precedence over any prefix.
+
+The most specific pattern that matches a package ID will have the highest precedence. Patterns with exact IDs will always have the highest precedence over a prefix pattern.
+
+When you're finished, your `nuget.config` might look like the following:
 
 **Example:**
 
 ```xml
-<!-- Define a global packages folder for your repository. -->
-<!-- This is where installed packages will be stored locally. -->
+<!-- [Optional] Define a global packages folder for your repository. -->
 <config>
   <add key="globalPackagesFolder" value="globalPackagesFolder" />
 </config>
@@ -209,7 +164,7 @@ The global packages folder is an *append only* resource. This means NuGet only e
 
 #### Package Source Mapping rules
 
-1. Two types of package ID patterns are supported:
+1. Two types of package patterns are supported:
 
     a. `NuGet.*` - Package prefixes. Must end with a `*`, which may match 0 or more characters. `*` is the broadest valid prefix that matches all package IDs, but will have the lowest precedence by default. `NuGet*` is also valid and will match package IDs `NuGet`, `NuGetFoo`, and `NuGet.Bar`.
     
@@ -449,6 +404,36 @@ NuGetA 1.0.0 -> Microsoft.B 1.0.0
 - Package `NuGetA` will be installed from `nuget.org`. ID prefixes do not need `.` delimiters.
 - Package `Microsoft.B` will be installed from `contoso`. `*` is a valid ID prefix that matches all package IDs and be used to define a default/fallback source. However, `*` has the lowest precedence and will "lose" if a package ID matches a more specific pattern.
 
+**Scenario 1H:**
+
+```xml
+<PackageReference Include="Microsoft.A" Version="1.0.0"/>
+<PackageReference Include="Newtonsoft.Json" Version="11.0.0"/>
+<PackageReference Include="Serilog" Version="11.0.0"/>
+<PackageReference Include="Contoso.Is.Private.Package" Version="1.0.0"/>
+```
+
+```xml
+<packageSourceMapping>
+    <packagesource key="nuget.org">
+        <package pattern="Serilog" />
+        <package pattern="Microsoft.Extensions.Options" />
+        <package pattern="Newtonsoft.Json" />
+    </packageSource>
+    <packagesource key="contoso">
+        <package pattern="*" />
+    </packageSource>
+</packageSourceMapping>
+```
+
+**Result:**
+
+- `Serilog`, `Microsoft.A`, and `Newtonsoft.Json` are all installed from `nuget.org`.
+- `Microsoft.Is.Private.Package` is installed from `contoso` feed.
+- All packages not explicitly defined by the listed patterns will be only be searched for from `contoso` feed due to matching `*`.
+
+Essentially, this configuration makes my internal feed a "default" and creates an explicit allowlist for `nuget.org` packages.
+
 ---
 
 **Scenario 2:**
@@ -568,4 +553,4 @@ There's a number of features that exist in various ecosystems & layers that solv
 - NuGet can allow a user to add a full or glob package ID namespace at install time with an additional click/parameter in Visual Studio or CLI.
 - NuGet can combine this feature with `Package Lock Files` to allow a user to ensure the lock file is generated under the allowlist of package ID patterns.
 - Create a better experience for this feature interacting with the global packages folder so that packages in the GPF are validated against the source mapping configuration.
-- Enable users to validate the outcome of their configuration with a CLI command, maybe apart of `dotnet list package`
+- Enable users to validate the outcome of their configuration with a CLI command, maybe a part of `dotnet list package`
