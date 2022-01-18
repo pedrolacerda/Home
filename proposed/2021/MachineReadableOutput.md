@@ -49,6 +49,7 @@ dotnet list package -h|--help
 ```
 
 `<FORMAT>` - Allowed values as part of spec is `json`. Also `text` is acceptable value too, it'll just output current cli output. (In the future `parseable`, `csv`, `yaml`, `xml` could be candidates.)
+For formatted outputs `transitive dependencies` option included by default because it would be most useful for customer since most likely usage of output would be SBOM, but customers still can opt-out with `--no-transitive`/`-nt` option.
 
 #### `> dotnet list package`
 
@@ -608,9 +609,11 @@ Please note, except "tab completion" (for dotnet) part all changes would be insi
 <!-- What lessons from other communities can we learn from? -->
 <!-- Are there any resources that are relevent to this proposal? -->
 
-* https://github.com/NuGet/Home/blob/dotnet-audit/proposed/2021/DotNetAudit.md#dotnet-audit---json
+* https://github.com/NuGet/Home/blob/dotnet-audit/proposed/2021/DotNetAudit.md#dotnet-audit---futjson There're some overlaps, but current spec is one more focused on SBOM and CI/CD actions, while `dotnet audit fix` is more focused detecting/fixing dependencies manually. Current spec already include ideas from this spec like `json format`.
 
-* https://github.com/NuGet/Home/wiki/%5BSpec%5D-Machine-readable-output-for-dotnet-list-package
+* https://github.com/NuGet/Home/wiki/%5BSpec%5D-Machine-readable-output-for-dotnet-list-package Basic idea from this spec is still same here and I extended from it. In current spec more orient to `dotnet style syntax` and cover more uses cases like `dotnet list package --vulnerable --format json` and `--include-transitive`, also json schema improved to include project name/identifier for multi-project scenario which would most likely use case.
+
+* https://docs.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters One idea we can take from `dotnet counter` is we can specify output file with `-o`, `--output` option. So instead of writing output into console, it allows output directly saved into file. It allows both `csv` and `json` formats, currently saved file doesn't have version concept.
 
 ## Unresolved Questions
 
@@ -635,3 +638,9 @@ In other words, if I look at this output years from now, how would I know whethe
 * Could we use existing packages.lock.json format? [sample](https://gist.github.com/erdembayar/4894b66bde227147b60e60997d20df41)
   * Direct/top level packages point to dependency packages.
   * Content hash.
+
+## Future Possibilities
+
+* `dotnet list package` show resolution tree for transitive dependencies and constraint for dependency [resolved version](https://github.com/NuGet/Home/pull/11446/files#r777233006).
+
+* `dotnet list package` return different exit codes if any vulnerabilities, deprecations, outdated package is [detected](https://github.com/NuGet/Home/blob/dotnet-audit/proposed/2021/DotNetAudit.md#dotnet-audit-exit-codes).
